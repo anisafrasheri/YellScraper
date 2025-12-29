@@ -1,0 +1,9 @@
+{
+    "actorSpecification": 1,
+    "name": "yell-scraper",
+    "title": "Yell Business Scraper",
+    "version": "1.0.0",
+    "description": "Scrapes business listings from Yell based on keywords and location.",
+    "input": "./input_schema.json",
+    "output": "./output_schema.json"
+}
