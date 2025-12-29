@@ -1,25 +1,28 @@
 import time
-import csv
-import json
+from apify_client import ApifyClient
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 
-# Load Actor input from Apify environment variable
-# In Apify, the input is available as JSON in ACTOR_INPUT
-try:
-    import os
-    input_data = json.loads(os.environ.get("ACTOR_INPUT", "{}"))
-except Exception:
-    input_data = {}
+LIMIT = 500  # total unique results needed
 
-# Default values if input not provided
-SEARCHES = [(kw, input_data.get("location", "United Kingdom")) for kw in input_data.get("keywords", ["Plumbers", "Electricians"])]
-LIMIT = input_data.get("limit", 100)
+SEARCHES = [
+    ("Private Dentists", "UK"),
+    ("Cosmetic Dentistry", "United Kingdom"),
+    ("Dental Implants", "United Kingdom")  # NEW FALLBACK CATEGORY
+]
 
-def scrape_search(driver, keyword, location, remaining_limit, seen_names, results):
+# Initialize Apify client
+client = ApifyClient()
+dataset_id = client.dataset("default").id  # default dataset
+
+
+def scrape_search(driver, keyword, location, remaining_limit, seen_names):
     page = 1
+    results = []
+
     while len(results) < remaining_limit:
+
         url = (
             f"https://www.yell.com/ucs/UcsSearchAction.do?"
             f"keywords={keyword.replace(' ', '+')}&"
@@ -31,46 +34,61 @@ def scrape_search(driver, keyword, location, remaining_limit, seen_names, result
         driver.get(url)
         time.sleep(2)
 
-        # Get results on page
         cards = driver.find_elements(By.XPATH, '//article[contains(@class,"businessCapsule")]')
+
         if not cards:
             print("⚠ No more results for this category.")
             break
 
-        print(f"📌 Found {len(cards)} business cards")
-
         for card in cards:
             if len(results) >= remaining_limit:
                 break
+
             try:
                 name = card.find_element(By.XPATH, ".//h2").text.strip()
             except:
                 continue
 
             if name.lower() in seen_names:
-                print(f"⏭ Skipping duplicate: {name}")
                 continue
 
             try:
-                website = card.find_element(By.XPATH, './/a[@data-test="localBusiness--website"]').get_attribute("href")
+                website = card.find_element(
+                    By.XPATH, './/a[@data-test="localBusiness--website"]'
+                ).get_attribute("href")
             except:
                 website = ""
 
             phone = ""
             try:
-                btn = card.find_element(By.XPATH, './/button[contains(@data-test,"localBusiness--phoneCollapsed")]')
+                btn = card.find_element(
+                    By.XPATH,
+                    './/button[contains(@data-test,"localBusiness--phoneCollapsed")]'
+                )
                 driver.execute_script("arguments[0].click();", btn)
                 time.sleep(0.4)
-                phone_elem = card.find_element(By.XPATH, './/span[contains(@class,"business--telephoneNumber")]')
+                phone_elem = card.find_element(
+                    By.XPATH,
+                    './/span[contains(@class,"business--telephoneNumber")]'
+                )
                 phone = phone_elem.text.strip()
             except:
                 phone = ""
 
-            results.append([name, phone, website])
+            # -------------------------
+            # Push to Apify dataset
+            # -------------------------
+            record = {"name": name, "phone": phone, "website": website}
+            client.dataset(dataset_id).push_items([record])
+
+            results.append(record)
             seen_names.add(name.lower())
             print(f"[{len(results)}/{remaining_limit}] ✔ {name} | {phone} | {website}")
 
         page += 1
+
+    return results
+
 
 def scrape_yell(limit):
     options = Options()
@@ -79,25 +97,23 @@ def scrape_yell(limit):
     print("Connected to verified Chrome browser…")
 
     seen_names = set()
-    results = []
+    total_results = []
 
     for keyword, location in SEARCHES:
-        if len(results) >= limit:
+        if len(total_results) >= limit:
             break
-        print(f"\n===============================\n🔍 Starting category: {keyword}\n===============================")
-        remaining = limit - len(results)
-        scrape_search(driver, keyword, location, limit, seen_names, results)
-        print(f"➡ Finished '{keyword}', total so far: {len(results)}")
+        print(f"\n===============================")
+        print(f"🔍 Starting category: {keyword}")
+        print(f"===============================")
+
+        remaining = limit - len(total_results)
+        results = scrape_search(driver, keyword, location, remaining, seen_names)
+        total_results.extend(results)
+        print(f"➡ Finished '{keyword}', total so far: {len(total_results)}")
 
     driver.quit()
+    print(f"\n✅ DONE — Scraped {len(total_results)} unique entries")
 
-    # Save results
-    with open("yell_scraped.csv", "w", newline="", encoding="utf-8") as f:
-        w = csv.writer(f)
-        w.writerow(["Name", "Phone", "Website"])
-        w.writerows(results)
-
-    print(f"\n✅ DONE — Saved {len(results)} unique entries to yell_scraped.csv")
 
 if __name__ == "__main__":
     scrape_yell(LIMIT)
