@@ -1,0 +1,35 @@
+{
+  "title": "Input schema for Yell Business Scraper",
+  "description": "Provide one or more search keywords and a location to scrape business listings from Yell.",
+  "type": "object",
+  "schemaVersion": 1,
+  "properties": {
+    "keywords": {
+      "title": "Search keywords",
+      "type": "array",
+      "description": "Business categories or services to search for on Yell (e.g., Plumbers, Electricians, Dentists).",
+      "items": {
+        "type": "string"
+      },
+      "editor": "stringList",
+      "prefill": [
+        "Plumbers",
+        "Electricians"
+      ]
+    },
+    "location": {
+      "title": "Location",
+      "type": "string",
+      "description": "City, region, or country where the search should be performed.",
+      "default": "United Kingdom"
+    },
+    "limit": {
+      "title": "Maximum results",
+      "type": "integer",
+      "description": "Maximum number of unique businesses to scrape.",
+      "minimum": 1,
+      "default": 100
+    }
+  },
+  "required": ["keywords", "location"]
+}
