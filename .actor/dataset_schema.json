@@ -1,0 +1,23 @@
+{
+  "datasetSchemaVersion": 1,
+  "title": "Yell Scraper Dataset",
+  "description": "Scraped business listings from Yell.com",
+  "type": "object",
+  "properties": {
+    "name": {
+      "title": "Business Name",
+      "type": "string",
+      "description": "The name of the business"
+    },
+    "phone": {
+      "title": "Phone Number",
+      "type": "string",
+      "description": "The business phone number"
+    },
+    "website": {
+      "title": "Website",
+      "type": "string",
+      "description": "The business website URL"
+    }
+  }
+}
