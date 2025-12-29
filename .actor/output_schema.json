@@ -1,0 +1,12 @@
+{
+    "actorOutputSchemaVersion": 1,
+    "title": "Output schema of Yell Business Scraper",
+    "properties": {
+        "results": {
+            "type": "string",
+            "title": "Scraped Businesses",
+            "description": "The dataset containing all scraped business listings (name, phone, website).",
+            "template": "{{links.apiDefaultDatasetUrl}}/items"
+        }
+    }
+}
