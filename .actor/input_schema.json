@@ -7,28 +7,27 @@
     "keywords": {
       "title": "Search keywords",
       "type": "array",
-      "description": "Business categories or services to search for on Yell (e.g., Plumbers, Electricians, Dentists).",
+      "description": "Business categories or services to search for on Yell (e.g. Plumbers, Dentists).",
+      "editor": "stringList",
       "items": {
         "type": "string"
       },
-      "editor": "stringList",
-      "prefill": [
-        "Plumbers",
-        "Electricians"
-      ]
+      "prefill": ["Plumbers", "Electricians"]
     },
     "location": {
       "title": "Location",
       "type": "string",
       "description": "City, region, or country where the search should be performed.",
+      "editor": "textfield",
       "default": "United Kingdom"
     },
     "limit": {
       "title": "Maximum results",
       "type": "integer",
       "description": "Maximum number of unique businesses to scrape.",
-      "minimum": 1,
-      "default": 100
+      "editor": "number",
+      "default": 100,
+      "minimum": 1
     }
   },
   "required": ["keywords", "location"]
