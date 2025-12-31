@@ -4,35 +4,25 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 
-# ==========================
-# CONFIG
-# ==========================
-
 LIMIT = 500  # total unique results needed
 
 SEARCHES = [
     ("Private Dentists", "UK"),
     ("Cosmetic Dentistry", "United Kingdom"),
-    ("Dental Implants", "United Kingdom"),
+    ("Dental Implants", "United Kingdom")  # NEW FALLBACK CATEGORY
 ]
 
-# ==========================
-# APIFY CLIENT
-# ==========================
-
+# Initialize Apify client
 client = ApifyClient()
-dataset = client.dataset("default")  # "default" IS the dataset ID
+# dataset_id = client.dataset("default").id  # default dataset
 
-
-# ==========================
-# SCRAPING LOGIC
-# ==========================
 
 def scrape_search(driver, keyword, location, remaining_limit, seen_names):
     page = 1
     results = []
 
     while len(results) < remaining_limit:
+
         url = (
             f"https://www.yell.com/ucs/UcsSearchAction.do?"
             f"keywords={keyword.replace(' ', '+')}&"
@@ -77,7 +67,6 @@ def scrape_search(driver, keyword, location, remaining_limit, seen_names):
                 )
                 driver.execute_script("arguments[0].click();", btn)
                 time.sleep(0.4)
-
                 phone_elem = card.find_element(
                     By.XPATH,
                     './/span[contains(@class,"business--telephoneNumber")]'
@@ -86,19 +75,15 @@ def scrape_search(driver, keyword, location, remaining_limit, seen_names):
             except:
                 phone = ""
 
-            record = {
-                "name": name,
-                "phone": phone,
-                "website": website,
-            }
-
-            # Push immediately to Apify dataset
-            dataset.push_items([record])
+            # -------------------------
+            # Push to Apify dataset
+            # -------------------------
+            record = {"name": name, "phone": phone, "website": website}
+           # client.dataset(dataset_id).push_items([record])
 
             results.append(record)
             seen_names.add(name.lower())
-
-            print(f"[{len(results)}] ✔ {name} | {phone} | {website}")
+            print(f"[{len(results)}/{remaining_limit}] ✔ {name} | {phone} | {website}")
 
         page += 1
 
@@ -107,41 +92,28 @@ def scrape_search(driver, keyword, location, remaining_limit, seen_names):
 
 def scrape_yell(limit):
     options = Options()
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
-    options.add_argument("--disable-gpu")
-
+    options.debugger_address = "127.0.0.1:9222"
     driver = webdriver.Chrome(options=options)
-    print("Connected to Chrome browser…")
+    print("Connected to verified Chrome browser…")
 
     seen_names = set()
-    total_count = 0
+    total_results = []
 
     for keyword, location in SEARCHES:
-        if total_count >= limit:
+        if len(total_results) >= limit:
             break
-
         print(f"\n===============================")
         print(f"🔍 Starting category: {keyword}")
         print(f"===============================")
 
-        remaining = limit - total_count
+        remaining = limit - len(total_results)
         results = scrape_search(driver, keyword, location, remaining, seen_names)
-        total_count += len(results)
-
-        print(f"➡ Finished '{keyword}', total so far: {total_count}")
+        total_results.extend(results)
+        print(f"➡ Finished '{keyword}', total so far: {len(total_results)}")
 
     driver.quit()
-    print(f"\n✅ DONE — Scraped {total_count} unique entries")
-
-
-# ==========================
-# ENTRY POINT
-# ==========================
-
-def main():
-    scrape_yell(LIMIT)
+    print(f"\n✅ DONE — Scraped {len(total_results)} unique entries")
 
 
 if __name__ == "__main__":
-    main()
+    scrape_yell(LIMIT)
