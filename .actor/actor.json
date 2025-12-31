@@ -1,5 +1,6 @@
 {
     "actorSpecification": 1,
+    "dockerfile": "./Dockerfile",
     "name": "yell-scraper",
     "title": "Yell Business Scraper",
     "version": "1.0.0",
